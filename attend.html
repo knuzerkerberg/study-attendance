@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>출석 체크</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h2>도서관 출석 체크</h2>
+  <form id="attendanceForm">
+    이름: <input type="text" id="nameInput" required><br><br>
+    <button type="submit">출석하기</button>
+  </form>
+  <p id="status"></p>
+
+  <script>
+    // 🔧 Firebase 설정 (여기에 네 firebaseConfig 붙여넣기!)
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC1dejvDAgEIUkmmc8WplGlcCHm11d9aHY",
+  authDomain: "study-attendance.firebaseapp.com",
+  projectId: "study-attendance",
+  storageBucket: "study-attendance.firebasestorage.app",
+  messagingSenderId: "906295237443",
+  appId: "1:906295237443:web:1719351df5150b81b42df6",
+  measurementId: "G-3ZB2TLD6DE"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const attendanceForm = document.getElementById("attendanceForm");
+    const statusP = document.getElementById("status");
+
+    attendanceForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) {
+        statusP.innerText = "이름을 입력하세요.";
+        return;
+      }
+
+      statusP.innerText = "위치 확인 중...";
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // 도서관 위치
+        const LIB_LAT = 35.89131;
+        const LIB_LNG = 128.61057;
+        const dist = getDistanceFromLatLonInMeters(lat, lng, LIB_LAT, LIB_LNG);
+
+        if (dist > 100) {
+          statusP.innerText = "출석 실패: 도서관 반경을 벗어났습니다.";
+          return;
+        }
+
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const LATE_HOUR = 9, LATE_MIN = 0;
+        const lateMinutes = ((hour * 60 + minute) - (LATE_HOUR * 60 + LATE_MIN));
+        const isLate = lateMinutes > 0;
+        const penalty = isLate ? Math.ceil(lateMinutes / 10) * 500 : 0;
+        const dateStr = now.toISOString().split('T')[0];
+
+        await db.collection("출석").doc(dateStr).set({
+          [name]: {
+            time: timeStr,
+            timestamp: now.getTime(),
+            isLate: isLate,
+            lateMinutes: isLate ? lateMinutes : 0,
+            penalty: penalty
+          }
+        }, { merge: true });
+
+        statusP.innerText = `출석 완료! (${timeStr}) ${isLate ? `지각 벌금: ${penalty}원` : '정시 도착 🎉'}`;
+      }, () => {
+        statusP.innerText = "위치 권한이 필요합니다.";
+      });
+    });
+
+    function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+  </script>
+</body>
+</html>
