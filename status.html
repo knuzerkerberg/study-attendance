@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>출석 현황</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h2>오늘의 출석 현황</h2>
+  <table border="1" id="attendanceTable">
+    <thead>
+      <tr>
+        <th>이름</th>
+        <th>도착 시간</th>
+        <th>지각 여부</th>
+        <th>벌금 (₩)</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="4">로딩 중...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC1dejvDAgEIUkmmc8WplGlcCHm11d9aHY",
+  authDomain: "study-attendance.firebaseapp.com",
+  projectId: "study-attendance",
+  storageBucket: "study-attendance.firebasestorage.app",
+  messagingSenderId: "906295237443",
+  appId: "1:906295237443:web:1719351df5150b81b42df6",
+  measurementId: "G-3ZB2TLD6DE"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tbody = document.getElementById("tableBody");
+    const today = new Date().toISOString().split('T')[0];
+
+    db.collection("출석").doc(today).onSnapshot((doc) => {
+      tbody.innerHTML = "";
+      if (!doc.exists) {
+        tbody.innerHTML = "<tr><td colspan='4'>출석 기록 없음</td></tr>";
+        return;
+      }
+
+      const data = doc.data();
+      const names = Object.keys(data).sort((a, b) => data[a].timestamp - data[b].timestamp);
+
+      names.forEach(name => {
+        const rec = data[name];
+        const row = `
+          <tr>
+            <td>${name}</td>
+            <td>${rec.time}</td>
+            <td>${rec.isLate ? "⏰ 지각" : "✅ 정시"}</td>
+            <td>${rec.penalty}원</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    });
+  </script>
+</body>
+</html>
