@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>출석하기</title>
+</head>
+<body>
+  <h1>✅ 출석하기</h1>
+  <form id="form">
+    이름: <input type="text" id="name" required /><br /><br />
+    <button type="submit">출석 제출</button>
+  </form>
+
+  <p id="result"></p>
+
+  <script>
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById("name").value;
+      const now = new Date();
+      const time = now.toLocaleTimeString();
+      const timestamp = now.toISOString();
+
+      const latitude = (await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(
+          (pos) => res(pos.coords.latitude),
+          (err) => rej("위치 정보 허용 필요")
+        )
+      )).toFixed(5);
+
+      const longitude = (await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(
+          (pos) => res(pos.coords.longitude),
+          (err) => rej("위치 정보 허용 필요")
+        )
+      )).toFixed(5);
+
+      const isLate = now.getHours() >= 9 && now.getMinutes() > 10;
+      const penalty = isLate ? Math.ceil(now.getMinutes() / 10) * 100 : 0;
+
+      const log = {
+        name,
+        time: timestamp,
+        isLate,
+        penalty,
+        location: { lat: latitude, lng: longitude },
+      };
+
+      // localStorage에 간단 저장
+      let logs = JSON.parse(localStorage.getItem("attendance") || "[]");
+      logs.push(log);
+      localStorage.setItem("attendance", JSON.stringify(logs));
+
+      document.getElementById("result").textContent = `출석 완료! ${time} (${isLate ? "지각💸" : "정시"})`;
+    });
+  </script>
+</body>
+</html>
