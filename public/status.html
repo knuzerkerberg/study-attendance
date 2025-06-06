@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>출석 현황</title>
+</head>
+<body>
+  <h1>📊 출석 현황</h1>
+  <ul id="list"></ul>
+
+  <script>
+    const logs = JSON.parse(localStorage.getItem("attendance") || "[]");
+    const list = document.getElementById("list");
+
+    if (logs.length === 0) {
+      list.innerHTML = "<li>출석 기록이 없습니다.</li>";
+    } else {
+      logs.forEach((entry) => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.name} - ${new Date(entry.time).toLocaleString()} (${entry.isLate ? "지각💸" : "정시"}) 벌금: ${entry.penalty}원`;
+        list.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
